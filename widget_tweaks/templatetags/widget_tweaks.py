@@ -1,3 +1,5 @@
+from copy import copy
+from functools import partial
 import re
 import types
 from django.template import Library, Node, Variable, TemplateSyntaxError
@@ -12,6 +14,14 @@ def silence_without_field(fn):
     return wrapped
 
 
+def tweaked_as_widget(self, widget=None, attrs=None, only_initial=False):
+    attrs = attrs or {}
+    widget = copy(widget or self.field.widget)
+    for process in reversed(self.render_processors):
+        process(widget, attrs)
+    return self.__class__.as_widget(self, widget=widget, attrs=attrs, only_initial=only_initial)
+
+
 def _process_field_attributes(field, attr, process):
 
     # split attribute name and value from 'attr:value' string
@@ -20,16 +30,10 @@ def _process_field_attributes(field, attr, process):
     value = params[1] if len(params) == 2 else ''
 
     # decorate field.as_widget method with updated attributes
-    old_as_widget = field.as_widget
-
-    def as_widget(self, widget=None, attrs=None, only_initial=False):
-        attrs = attrs or {}
-        process(widget or self.field.widget, attrs, attribute, value)
-        html = old_as_widget(widget, attrs, only_initial)
-        self.as_widget = old_as_widget
-        return html
-
-    field.as_widget = types.MethodType(as_widget, field)
+    render_processors = getattr(field, 'render_processors', ())
+    field = copy(field)
+    field.render_processors = render_processors + (partial(process, attribute=attribute, value=value),)
+    field.as_widget = types.MethodType(tweaked_as_widget, field)
     return field
 
 
@@ -181,4 +185,5 @@ class FieldAttributeNode(Node):
             bounded_field = set_attr(bounded_field, '%s:%s' % (k,v.resolve(context)))
         for k, v in self.append_attrs:
             bounded_field = append_attr(bounded_field, '%s:%s' % (k,v.resolve(context)))
+        #str(bounded_field)
         return bounded_field
