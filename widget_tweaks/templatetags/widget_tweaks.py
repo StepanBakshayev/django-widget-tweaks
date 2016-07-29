@@ -185,5 +185,4 @@ class FieldAttributeNode(Node):
             bounded_field = set_attr(bounded_field, '%s:%s' % (k,v.resolve(context)))
         for k, v in self.append_attrs:
             bounded_field = append_attr(bounded_field, '%s:%s' % (k,v.resolve(context)))
-        #str(bounded_field)
         return bounded_field
