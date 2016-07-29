@@ -318,6 +318,13 @@ class RenderFieldTagFieldReuseTest(TestCase):
         self.assertEqual(res.count("class0"), 3)
         self.assertEqual(res.count("bar"), 1)
 
+    def test_field_double_rendering_value(self):
+        res = render_form('{% render_field form.simple value="ABC" id="id1" %}{% render_field form.simple value="XYZ" id="id2" %}')
+        assertIn('id="id1"', res)
+        assertIn('value="ABC"', res)
+        assertIn('id="id2"', res)
+        assertIn('value="XYZ"', res)
+
 
 class RenderFieldTagUseTemplateVariableTest(TestCase):
     def test_use_template_variable_in_parametrs(self):
